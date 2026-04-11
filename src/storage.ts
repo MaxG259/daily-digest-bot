@@ -1,6 +1,7 @@
 // хранение сообщений
 interface Message {
   time: string
+  date: string // добавляем дату
   text: string
 }
 
@@ -18,17 +19,24 @@ export function addMessage(chatId: number, text: string): void {
     users.set(chatId, { messages: [], timezone: 'Europe/Moscow' })
   }
 
-  const time = new Date().toLocaleTimeString('ru-RU', {
+  const now = new Date()
+  const time = now.toLocaleTimeString('ru-RU', {
     timeZone: 'Europe/Moscow',
     hour: '2-digit',
     minute: '2-digit',
   })
+  const date = now.toLocaleDateString('ru-RU', {
+    timeZone: 'Europe/Moscow',
+  })
 
-  users.get(chatId)!.messages.push({ time, text })
+  users.get(chatId)!.messages.push({ time, date, text })
 }
 
 export function getMessages(chatId: number): Message[] {
-  return users.get(chatId)?.messages ?? []
+  const today = new Date().toLocaleDateString('ru-RU', {
+    timeZone: 'Europe/Moscow',
+  })
+  return users.get(chatId)?.messages.filter((m) => m.date === today) ?? []
 }
 
 export function getAllUsersWithMessages(): number[] {
