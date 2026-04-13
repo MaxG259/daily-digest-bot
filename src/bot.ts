@@ -11,8 +11,16 @@ import {
 } from './storage'
 import { generateSummary } from './summary'
 
-connectDB()
-const bot = new TelegramBot(process.env.TELEGRAM_TOKEN!, { polling: true })
+const bot = new TelegramBot(process.env.TELEGRAM_TOKEN!, { polling: false })
+
+async function start() {
+  await connectDB()
+  await bot.deleteWebHook()
+  await bot.startPolling()
+  console.log('🤖 Bot started')
+}
+
+start()
 
 // Обработка сообщений
 bot.on('message', async (msg) => {
