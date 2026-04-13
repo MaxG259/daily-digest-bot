@@ -5,11 +5,16 @@ import { getMessages } from './storage'
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
 export async function generateSummary(chatId: number): Promise<string | null> {
-  const messages = getMessages(chatId)
+  const messages = await getMessages(chatId)
 
   if (messages.length === 0) return null
 
-  const list = messages.map((m) => `[${m.time}] ${m.text}`).join('\n')
+  const list = messages
+    .map(
+      (m) =>
+        `[${new Date(m.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}] ${m.text}`
+    )
+    .join('\n')
 
   const response = await groq.chat.completions.create({
     model: 'llama-3.3-70b-versatile',

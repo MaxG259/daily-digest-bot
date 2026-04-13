@@ -2,14 +2,16 @@ import 'dotenv/config'
 import http from 'http'
 import cron from 'node-cron'
 import TelegramBot from 'node-telegram-bot-api'
+import { connectDB } from './db'
 import {
   addMessage,
   clearMessages,
-  getAllUsersWithMessages,
+  getAllChatIds,
   getMessages,
 } from './storage'
 import { generateSummary } from './summary'
 
+connectDB()
 const bot = new TelegramBot(process.env.TELEGRAM_TOKEN!, { polling: true })
 
 // Обработка сообщений
@@ -27,12 +29,15 @@ bot.on('message', async (msg) => {
   }
 
   if (text === '/list') {
-    const messages = getMessages(chatId)
+    const messages = await getMessages(chatId)
     if (messages.length === 0) {
       await bot.sendMessage(chatId, '📭 Сегодня записей ещё нет')
     } else {
       const list = messages
-        .map((m, i) => `${i + 1}. [${m.time}] ${m.text}`)
+        .map(
+          (m, i) =>
+            `${i + 1}. [${new Date(m.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}] ${m.text}`
+        )
         .join('\n')
       await bot.sendMessage(chatId, `📝 *Твои мысли за сегодня:*\n\n${list}`, {
         parse_mode: 'Markdown',
@@ -63,7 +68,7 @@ bot.on('message', async (msg) => {
   }
 
   // Обычное сообщение — сохраняем
-  addMessage(chatId, text)
+  await addMessage(chatId, text)
   await bot.sendMessage(chatId, '✅ Записал')
 })
 
@@ -71,7 +76,7 @@ bot.on('message', async (msg) => {
 cron.schedule(
   '0 20 * * *',
   async () => {
-    const userIds = getAllUsersWithMessages()
+    const userIds = await getAllChatIds()
     for (const chatId of userIds) {
       try {
         const summary = await generateSummary(chatId)
@@ -80,7 +85,7 @@ cron.schedule(
         await bot.sendMessage(chatId, `📋 *Сводка за ${date}*\n\n${summary}`, {
           parse_mode: 'Markdown',
         })
-        clearMessages(chatId)
+        await clearMessages(chatId)
       } catch (err) {
         console.error(`Ошибка сводки для ${chatId}:`, err)
       }
