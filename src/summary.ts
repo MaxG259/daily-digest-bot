@@ -12,7 +12,7 @@ export async function generateSummary(chatId: number): Promise<string | null> {
   const list = messages
     .map(
       (m) =>
-        `[${new Date(m.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}] ${m.text}`
+        `[${new Date(m.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })}] ${m.text}`
     )
     .join('\n')
 

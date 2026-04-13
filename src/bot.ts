@@ -44,7 +44,7 @@ bot.on('message', async (msg) => {
       const list = messages
         .map(
           (m, i) =>
-            `${i + 1}. [${new Date(m.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}] ${m.text}`
+            `${i + 1}. [${new Date(m.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })}] ${m.text}`
         )
         .join('\n')
       await bot.sendMessage(chatId, `📝 *Твои мысли за сегодня:*\n\n${list}`, {
