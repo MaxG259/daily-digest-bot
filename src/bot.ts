@@ -109,7 +109,7 @@ http
     res.end('OK')
   })
   .listen(process.env.PORT ?? 3000, () => {
-    console.log('🤖 Bot started')
+    console.log('🌐 HTTP server started')
   })
 
 // Graceful shutdown для Render
