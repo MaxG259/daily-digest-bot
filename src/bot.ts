@@ -103,3 +103,18 @@ http
   .listen(process.env.PORT ?? 3000, () => {
     console.log('🤖 Bot started')
   })
+
+// Graceful shutdown для Render
+process.once('SIGTERM', () => {
+  console.log('Stopping bot...')
+  bot.stopPolling()
+})
+
+// Не спамить в логах ошибкой 409
+bot.on('polling_error', (err: any) => {
+  if (err.code === 'ETELEGRAM' && err.message.includes('409')) {
+    console.log('⚠️ Another instance running, waiting...')
+  } else {
+    console.error('Polling error:', err)
+  }
+})
