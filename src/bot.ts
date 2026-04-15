@@ -57,15 +57,28 @@ bot.on('message', async (msg) => {
   if (text === '/summary') {
     await bot.sendMessage(chatId, '⏳ Формирую сводку...')
     try {
-      const summary = await generateSummary(chatId)
-      if (!summary) {
+      const messages = await getMessages(chatId)
+      if (messages.length === 0) {
         await bot.sendMessage(chatId, '📭 Сегодня ты ничего не записывал')
         return
       }
-      const date = new Date().toLocaleDateString('ru-RU')
-      await bot.sendMessage(chatId, `📋 *Сводка за ${date}*\n\n${summary}`, {
-        parse_mode: 'Markdown',
+      const date = new Date().toLocaleDateString('ru-RU', {
+        timeZone: 'Europe/Moscow',
       })
+      const list = messages
+        .map(
+          (m, i) =>
+            `${i + 1}. [${new Date(m.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })}] ${m.text}`
+        )
+        .join('\n')
+      const summary = await generateSummary(chatId)
+      await bot.sendMessage(
+        chatId,
+        `📋 *Сводка за ${date}*\n\n📝 *Заметки:*\n${list}\n\n🤖 *Анализ:*\n${summary}`,
+        {
+          parse_mode: 'Markdown',
+        }
+      )
     } catch (err) {
       await bot.sendMessage(
         chatId,
@@ -80,29 +93,48 @@ bot.on('message', async (msg) => {
   await bot.sendMessage(chatId, '✅ Записал')
 })
 
-// Автосводка в 20:00 по Москве для всех пользователей
+// Автосводка в 17:00 UTC = 20:00 МСК
 cron.schedule(
-  '0 20 * * *',
+  '0 17 * * *',
   async () => {
+    console.log('🕔 Cron запустился, собираю сводки...')
     const userIds = await getAllChatIds()
+    console.log(`👥 Найдено пользователей: ${userIds.length}`)
     for (const chatId of userIds) {
       try {
-        const summary = await generateSummary(chatId)
-        if (!summary) continue
-        const date = new Date().toLocaleDateString('ru-RU')
-        await bot.sendMessage(chatId, `📋 *Сводка за ${date}*\n\n${summary}`, {
-          parse_mode: 'Markdown',
+        const messages = await getMessages(chatId)
+        if (messages.length === 0) {
+          console.log(`⏭️ Пропускаю ${chatId} — нет заметок`)
+          continue
+        }
+        const date = new Date().toLocaleDateString('ru-RU', {
+          timeZone: 'Europe/Moscow',
         })
+        const list = messages
+          .map(
+            (m, i) =>
+              `${i + 1}. [${new Date(m.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' })}] ${m.text}`
+          )
+          .join('\n')
+        const summary = await generateSummary(chatId)
+        await bot.sendMessage(
+          chatId,
+          `📋 *Сводка за ${date}*\n\n📝 *Заметки:*\n${list}\n\n🤖 *Анализ:*\n${summary}`,
+          {
+            parse_mode: 'Markdown',
+          }
+        )
+        console.log(`✅ Сводка отправлена: ${chatId}`)
         await clearMessages(chatId)
       } catch (err) {
-        console.error(`Ошибка сводки для ${chatId}:`, err)
+        console.error(`❌ Ошибка сводки для ${chatId}:`, err)
       }
     }
   },
-  { timezone: 'Europe/Moscow' }
+  { timezone: 'UTC' }
 )
 
-// HTTP сервер для пинга cron-job.org — держит бот живым на Render
+// HTTP сервер для пинга cron-job.org
 http
   .createServer((_, res) => {
     res.writeHead(200)
@@ -118,7 +150,7 @@ process.once('SIGTERM', () => {
   bot.stopPolling()
 })
 
-// Не спамить в логах ошибкой 409
+// Обработка ошибок polling
 bot.on('polling_error', (err: any) => {
   if (err.code === 'ETELEGRAM' && err.message.includes('409')) {
     console.log('⚠️ Another instance running, waiting...')
