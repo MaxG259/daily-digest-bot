@@ -1,9 +1,13 @@
 import cron from 'node-cron'
 import TelegramBot from 'node-telegram-bot-api'
-import { getChatIdsWithPendingMessages, getMessagesForPeriod, markMessagesAsSent } from './services/messageService'
 import { generateSummary } from './services/aiService'
-import { formatMessageList } from './utils/formatMessages'
+import {
+  getChatIdsWithPendingMessages,
+  getMessagesForPeriod,
+  markMessagesAsSent,
+} from './services/messageService'
 import { formatDateMSK } from './utils/dateUtils'
+import { formatMessageList } from './utils/formatMessages'
 
 export function startCron(bot: TelegramBot): void {
   // 17:00 UTC = 20:00 МСК, каждый день
@@ -28,10 +32,12 @@ export function startCron(bot: TelegramBot): void {
           const list = formatMessageList(messages)
           const summary = await generateSummary(messages)
 
+          await bot.sendMessage(chatId, `📋 *Сводка за ${date}*`, {
+            parse_mode: 'Markdown',
+          })
           await bot.sendMessage(
             chatId,
-            `📋 *Сводка за ${date}*\n\n📝 *Заметки:*\n${list}\n\n🤖 *Анализ:*\n${summary}`,
-            { parse_mode: 'Markdown' }
+            `📝 Заметки:\n${list}\n\n🤖 Анализ:\n${summary}`
           )
 
           // Помечаем как отправленные — НЕ удаляем

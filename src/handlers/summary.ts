@@ -1,10 +1,13 @@
 import TelegramBot from 'node-telegram-bot-api'
-import { getMessagesForPeriod } from '../services/messageService'
 import { generateSummary } from '../services/aiService'
-import { formatMessageList } from '../utils/formatMessages'
+import { getMessagesForPeriod } from '../services/messageService'
 import { formatDateMSK } from '../utils/dateUtils'
+import { formatMessageList } from '../utils/formatMessages'
 
-export async function handleSummary(bot: TelegramBot, chatId: number): Promise<void> {
+export async function handleSummary(
+  bot: TelegramBot,
+  chatId: number
+): Promise<void> {
   await bot.sendMessage(chatId, '⏳ Формирую сводку...')
 
   try {
@@ -19,13 +22,18 @@ export async function handleSummary(bot: TelegramBot, chatId: number): Promise<v
     const list = formatMessageList(messages)
     const summary = await generateSummary(messages)
 
+    await bot.sendMessage(chatId, `📋 *Сводка за ${date}*`, {
+      parse_mode: 'Markdown',
+    })
     await bot.sendMessage(
       chatId,
-      `📋 *Сводка за ${date}*\n\n📝 *Заметки:*\n${list}\n\n🤖 *Анализ:*\n${summary}`,
-      { parse_mode: 'Markdown' }
+      `📝 Заметки:\n${list}\n\n🤖 Анализ:\n${summary}`
     )
   } catch (err) {
     console.error('Error in /summary handler:', err)
-    await bot.sendMessage(chatId, '❌ Ошибка при создании сводки. Попробуй позже.')
+    await bot.sendMessage(
+      chatId,
+      '❌ Ошибка при создании сводки. Попробуй позже.'
+    )
   }
 }
